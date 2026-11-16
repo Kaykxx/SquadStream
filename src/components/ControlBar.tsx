@@ -21,29 +21,49 @@ interface Props {
   onLeave: () => void
 }
 
-function Btn({ children, label, on, danger, disabled, title, onClick }: { children: ReactNode; label: string; on?: boolean; danger?: boolean; disabled?: boolean; title?: string; onClick: () => void }) {
-  const tone = danger ? 'bg-red-500 text-white hover:bg-red-400' : on ? 'bg-accent text-white hover:brightness-110' : 'bg-panel-2 text-zinc-200 hover:bg-line'
+type Tone = 'default' | 'active' | 'muted' | 'leave'
+
+/** Botão redondo só com ícone, como a barra de chamada do Discord. */
+function Btn({ children, title, tone = 'default', onClick }: { children: ReactNode; title: string; tone?: Tone; onClick: () => void }) {
+  const styles: Record<Tone, string> = {
+    default: 'bg-panel-2 text-zinc-100 hover:bg-line',
+    active: 'bg-white text-zinc-900 hover:bg-zinc-200', // ligado: câmera, transmissão, chat aberto
+    muted: 'bg-panel-2 text-red-400 hover:bg-line', // mudo / ensurdecido
+    leave: 'bg-red-500 text-white hover:bg-red-400 px-6',
+  }
   return (
-    <button onClick={onClick} disabled={disabled} title={title ?? label} className={`flex h-12 items-center gap-2 rounded-xl px-4 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-40 ${tone}`}>
+    <button
+      onClick={onClick} title={title} aria-label={title}
+      className={`grid h-12 place-items-center rounded-full transition ${tone === 'leave' ? '' : 'w-12'} ${styles[tone]}`}
+    >
       {children}
-      <span className="hidden lg:inline">{label}</span>
     </button>
   )
 }
 
 export default function ControlBar(p: Props) {
   return (
-    <div className="flex flex-wrap items-center justify-center gap-2.5">
-      {p.micEnabled && <Btn label={p.muted ? 'Desmutar' : 'Mutar'} on={p.muted} onClick={p.onMute}>{p.muted ? <MicOffIcon /> : <MicIcon />}</Btn>}
-      <Btn label={p.deafened ? 'Ouvir' : 'Ensurdecer'} on={p.deafened} onClick={p.onDeafen}>{p.deafened ? <HeadphonesOffIcon /> : <HeadphonesIcon />}</Btn>
-      <Btn label={p.camera ? 'Desligar câmera' : 'Câmera'} on={p.camera} onClick={p.onCamera}>{p.camera ? <CameraIcon /> : <CameraOffIcon />}</Btn>
-      <Btn label={p.sharing ? 'Parar transmissão' : 'Compartilhar tela'} on={p.sharing}  onClick={p.onShare}><ScreenIcon /></Btn>
+    <div className="flex flex-wrap items-center justify-center gap-3">
+      {p.micEnabled && (
+        <Btn title={p.muted ? 'Ativar microfone' : 'Silenciar microfone'} tone={p.muted ? 'muted' : 'default'} onClick={p.onMute}>
+          {p.muted ? <MicOffIcon /> : <MicIcon />}
+        </Btn>
+      )}
+      <Btn title={p.deafened ? 'Ativar áudio' : 'Desativar áudio'} tone={p.deafened ? 'muted' : 'default'} onClick={p.onDeafen}>
+        {p.deafened ? <HeadphonesOffIcon /> : <HeadphonesIcon />}
+      </Btn>
+      <Btn title={p.camera ? 'Desligar câmera' : 'Ligar câmera'} tone={p.camera ? 'active' : 'default'} onClick={p.onCamera}>
+        {p.camera ? <CameraIcon /> : <CameraOffIcon />}
+      </Btn>
+      <Btn title={p.sharing ? 'Parar transmissão' : 'Compartilhar tela'} tone={p.sharing ? 'active' : 'default'} onClick={p.onShare}>
+        <ScreenIcon />
+      </Btn>
 
       <select
         value={p.quality}
         onChange={(e) => p.onQuality(e.target.value as Quality)}
         title="Qualidade da transmissão"
-        className="h-12 cursor-pointer rounded-xl border border-line bg-panel-2 px-3 text-sm text-zinc-200 outline-none hover:bg-line focus:border-accent"
+        className="h-12 cursor-pointer rounded-full border border-line bg-panel-2 px-4 text-sm text-zinc-200 outline-none hover:bg-line focus:border-accent"
       >
         {(Object.keys(QUALITY_LABEL) as Quality[]).map((q) => (
           <option key={q} value={q}>{QUALITY_LABEL[q]}</option>
@@ -51,12 +71,12 @@ export default function ControlBar(p: Props) {
       </select>
 
       <div className="relative">
-        <Btn label="Chat" on={p.chatOpen} onClick={p.onChat}><ChatIcon /></Btn>
+        <Btn title={p.chatOpen ? 'Fechar chat' : 'Abrir chat'} tone={p.chatOpen ? 'active' : 'default'} onClick={p.onChat}><ChatIcon /></Btn>
         {p.unread > 0 && !p.chatOpen && (
           <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-[11px] font-bold">{p.unread}</span>
         )}
       </div>
-      <Btn label="Sair" danger onClick={p.onLeave}><PhoneOffIcon /></Btn>
+      <Btn title="Desconectar" tone="leave" onClick={p.onLeave}><PhoneOffIcon /></Btn>
     </div>
   )
 }

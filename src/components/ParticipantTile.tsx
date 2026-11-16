@@ -48,11 +48,11 @@ export default function ParticipantTile({ p, stream, focused, compact, onFocus, 
     <div
       ref={box}
       onClick={compact ? onFocus : undefined}
-      className={`group relative h-full min-h-0 overflow-hidden rounded-xl border border-line bg-panel-2 shadow-lg ${compact ? 'cursor-pointer' : ''}`}
+      className={`group relative h-full min-h-0 overflow-hidden rounded-lg bg-[#1e1f22] ${compact ? 'cursor-pointer' : ''}`}
       style={speaking ? { boxShadow: '0 0 0 2px var(--color-live)' } : undefined}
     >
       {stream ? (
-        <ScreenVideo stream={stream} cover={!focused} mirror={p.isMe} videoRef={(el) => { video.current = el }} />
+        <ScreenVideo stream={stream} mirror={p.isMe} videoRef={(el) => { video.current = el }} />
       ) : (
         <div className="grid h-full w-full place-items-center">
           <span

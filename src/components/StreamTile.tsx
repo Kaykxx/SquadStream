@@ -53,7 +53,7 @@ export default function StreamTile({ p, stream, quality, focused, compact, onFoc
   return (
     <div
       ref={box}
-      className="group relative h-full min-h-0 overflow-hidden rounded-xl border border-line bg-black shadow-lg"
+      className="group relative h-full min-h-0 overflow-hidden rounded-lg bg-black"
       style={p.speaking && !p.muted && !p.deafened ? { boxShadow: '0 0 0 2px var(--color-live)' } : undefined}
     >
       {stream ? (

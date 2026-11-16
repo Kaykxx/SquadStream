@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Participant, Quality } from '../types'
 import StreamTile from './StreamTile'
 import ParticipantTile from './ParticipantTile'
+import FitGrid from './FitGrid'
 
 interface Props {
   users: Participant[]
@@ -45,7 +46,7 @@ export default function Stage({ users, screens, cameras, quality, onScreenVolume
   }
 
   const strip = (tiles: Tile[]) => (
-    <div className="grid h-32 shrink-0 auto-cols-[12rem] grid-flow-col gap-3 overflow-x-auto">
+    <div className="grid h-28 shrink-0 auto-cols-[199px] grid-flow-col justify-center gap-3 overflow-x-auto">
       {tiles.map((t) => (
         <div key={t.key} className="min-h-0">
           {/* Em miniatura, o clique inteiro amplia (telas ignoram os botões internos). */}
@@ -59,23 +60,12 @@ export default function Stage({ users, screens, cameras, quality, onScreenVolume
     </div>
   )
 
-  const grid = (tiles: Tile[]) => {
-    const cols = tiles.length === 1 ? 1 : 2
-    const rows = Math.ceil(tiles.length / cols)
-    return (
-      <div
-        className="grid h-full min-h-0 gap-3"
-        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` }}
-      >
-        {tiles.map((t) => render(t))}
-      </div>
-    )
-  }
+  const grid = (tiles: Tile[]) => <FitGrid tiles={tiles.map((t) => ({ key: t.key, node: render(t) }))} />
 
   let main: React.ReactNode
   let side: Tile[] = []
   if (focus) {
-    main = <div className="h-full min-h-0">{render(focus)}</div>
+    main = grid([focus])
     side = all.filter((t) => t.key !== focus.key)
   } else if (screenTiles.length > 0) {
     main = grid(screenTiles)
@@ -85,7 +75,7 @@ export default function Stage({ users, screens, cameras, quality, onScreenVolume
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3">
+    <div className="flex h-full min-h-0 flex-col gap-3 rounded-xl bg-black p-3">
       <div className="min-h-0 flex-1">{main}</div>
       {side.length > 0 && strip(side)}
     </div>
