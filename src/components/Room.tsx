@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ChatMessage, Participant, Quality } from '../types'
-import StreamGrid from './StreamGrid'
-import UserBar from './UserBar'
+import Stage from './Stage'
 import ControlBar from './ControlBar'
 import Chat from './Chat'
 import { CopyIcon } from './Icons'
-import ScreenVideo from './ScreenVideo'
 import { useAudio } from '../hooks/useAudio'
 import { MIC_ENABLED } from '../features'
 import { useRoom } from '../hooks/useRoom'
@@ -154,24 +152,13 @@ export default function Room({ code, name, onLeave }: Props) {
 
       <div className="flex min-h-0 flex-1 gap-3">
         <div className="min-w-0 flex-1">
-          <StreamGrid streams={streams} screens={room.screens} quality={quality} onScreenVolume={(id, v) => setVol(id, 'screen', v)} />
+          <Stage
+            users={users} screens={room.screens} cameras={room.cameras} quality={quality}
+            onScreenVolume={(id, v) => setVol(id, 'screen', v)} onVoiceVolume={(id, v) => setVol(id, 'voice', v)}
+          />
         </div>
         {chatOpen && <Chat messages={messages} onSend={room.sendChat} onClose={() => toggleChat(false)} />}
       </div>
-
-      {/* Provisório (Passo 2): faixa simples só para testar o envio das câmeras. O layout final vem no Passo 3. */}
-      {Object.keys(room.cameras).length > 0 && (
-        <div className="flex gap-3 overflow-x-auto">
-          {Object.entries(room.cameras).map(([id, stream]) => (
-            <div key={id} className="relative h-28 w-48 shrink-0 overflow-hidden rounded-xl border border-line bg-black">
-              <ScreenVideo stream={stream} cover mirror={id === identity.peerId} />
-              <span className="absolute bottom-1 left-2 rounded bg-black/60 px-1.5 text-[11px]">{users.find((u) => u.id === id)?.name}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <UserBar users={users} onVoiceVolume={(id, v) => setVol(id, 'voice', v)} />
 
       <ControlBar
         micEnabled={MIC_ENABLED} muted={muted} deafened={deafened} sharing={room.localSharing} camera={room.localCamera} onCamera={() => (room.localCamera ? room.stopCamera() : room.startCamera())} quality={quality}
