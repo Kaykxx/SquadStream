@@ -78,9 +78,10 @@ const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v
 export default async function handler(req: Req, res: Res): Promise<void> {
   res.setHeader('Cache-Control', 'no-store')
   if (req.method !== 'GET') { res.status(405).json({ error: 'method' }); return }
-  // Navegadores sempre enviam Sec-Fetch-Site: só aceitamos chamadas feitas pelo próprio site.
+  // Navegadores sempre enviam Sec-Fetch-Site. Aceitamos o próprio site ('same-origin') e a barra de
+  // endereço ('none', útil para conferir a função); bloqueamos scripts de outros sites.
   const site = first(req.headers['sec-fetch-site'])
-  if (site && site !== 'same-origin') { res.status(403).json({ error: 'forbidden' }); return }
+  if (site && site !== 'same-origin' && site !== 'none') { res.status(403).json({ error: 'forbidden' }); return }
   const ip = first(req.headers['x-forwarded-for'])?.split(',')[0].trim() ?? req.socket?.remoteAddress ?? 'unknown'
   if (limited(ip)) { res.status(429).json({ error: 'rate' }); return }
 
