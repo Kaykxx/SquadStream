@@ -1,8 +1,8 @@
+/** Código de sala: 10 caracteres de um alfabeto de 32 (50 bits), com gerador criptográfico. */
 export function genRoomCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  let out = ''
-  for (let i = 0; i < 6; i++) out += chars[Math.floor(Math.random() * chars.length)]
-  return out
+  const bytes = crypto.getRandomValues(new Uint8Array(10))
+  return Array.from(bytes, (b) => chars[b % chars.length]).join('')
 }
 
 /** Aceita código puro ou link (…/?sala=ABC123 ou …/ABC123). */

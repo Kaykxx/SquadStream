@@ -10,7 +10,7 @@ export default function Lobby({ onJoin, presetCode = '' }: { onJoin: (code: stri
   const join = (e: React.FormEvent) => {
     e.preventDefault()
     const code = parseRoomInput(input)
-    if (code.length < 4) return setError('Informe um código ou link de sala válido.')
+    if (code.length < 6) return setError('Informe um código ou link de sala válido.')
     onJoin(code, name.trim() || 'Você')
   }
 

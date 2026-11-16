@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { MIC_ENABLED } from '../features'
 import { AudioEngine, MicError, startMic, type MicHandle } from '../audio'
 
-export type MicStatus = 'starting' | 'ready' | 'error'
+export type MicStatus = 'starting' | 'ready' | 'error' | 'disabled'
 
 interface Options {
   muted: boolean
@@ -37,24 +38,33 @@ export function useAudio({ muted, deafened, onLocalSpeaking }: Options) {
     void eng.resume()
     let stopVad = () => {}
 
-    queueMicrotask(() => {
-      if (cancelled) return
-      setMicStatus('starting')
-      setMicError(null)
-    })
-    startMic()
-      .then((mic) => {
-        if (cancelled) { mic.stop(); return }
-        micRef.current = mic
-        stopVad = eng.watchLocalVoice(mic.stream, (s) => speakingCb.current(s))
-        setMicStream(mic.stream)
-        setMicStatus('ready')
-      })
-      .catch((e: unknown) => {
+    if (!MIC_ENABLED) {
+      // Sem pedir permissão nem abrir o microfone. O áudio de transmissões e a voz de quem tem mic continuam funcionando.
+      queueMicrotask(() => {
         if (cancelled) return
-        setMicStatus('error')
-        setMicError(e instanceof MicError ? e.message : 'Erro inesperado ao abrir o microfone.')
+        setMicStatus('disabled')
+        setMicError(null)
       })
+    } else {
+      queueMicrotask(() => {
+        if (cancelled) return
+        setMicStatus('starting')
+        setMicError(null)
+      })
+      startMic()
+        .then((mic) => {
+          if (cancelled) { mic.stop(); return }
+          micRef.current = mic
+          stopVad = eng.watchLocalVoice(mic.stream, (s) => speakingCb.current(s))
+          setMicStream(mic.stream)
+          setMicStatus('ready')
+        })
+        .catch((e: unknown) => {
+          if (cancelled) return
+          setMicStatus('error')
+          setMicError(e instanceof MicError ? e.message : 'Erro inesperado ao abrir o microfone.')
+        })
+    }
 
     const onHide = () => { micRef.current?.stop() }
     window.addEventListener('pagehide', onHide)

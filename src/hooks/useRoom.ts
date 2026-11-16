@@ -61,7 +61,7 @@ export function useRoom(o: Options) {
         },
       })
       clientRef.current = client
-      client.start()
+      void client.start()
     }, 0)
     const onHide = () => client?.destroy()
     window.addEventListener('pagehide', onHide)

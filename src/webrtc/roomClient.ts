@@ -1,5 +1,5 @@
 import type { AudioEngine } from '../audio'
-import { getIceServers, type ScreenQuality } from './config'
+import { MAX_PEERS, fetchIceServers, type ScreenQuality } from './config'
 import { colorFor, type Identity } from './identity'
 import { PeerLink, type LinkState } from './peerLink'
 import { ScreenError, startScreenShare, type ScreenHandle } from './screenShare'
@@ -53,7 +53,7 @@ export class RoomClient {
   private screenQuality: ScreenQuality = '1080p60'
   private screenStreams = new Map<string, MediaStream>()
   private pendingTracks: { id: string; stream: MediaStream; track: MediaStreamTrack }[] = []
-  private iceServers = getIceServers()
+  private iceServers: RTCIceServer[] = []
 
   constructor(o: Options) {
     this.o = o
@@ -69,14 +69,21 @@ export class RoomClient {
     }
     this.signaling = new Signaling(o.code, me, {
       onPeers: (all) => this.handlePeers(all),
-      onSignal: (m) => this.ensureLink(m.from).handleSignal(m),
+      onSignal: (m) => {
+        // Sinal de quem não conhecemos só vale se ainda há vaga (evita criar conexões em massa).
+        if (!this.links.has(m.from) && this.links.size >= MAX_PEERS - 1) return
+        void this.ensureLink(m.from).handleSignal(m)
+      },
       onChat: (m) => { if (m.from !== me.id) o.events.onChat(m) },
       onStatus: (s, d) => { if (!this.destroyed) o.events.onStatus(s, d) },
       onFull: () => { if (!this.destroyed) { this.closeAll(); o.events.onFull() } },
     })
   }
 
-  start(): void { this.signaling.connect() }
+  async start(): Promise<void> {
+    this.iceServers = await fetchIceServers()
+    if (!this.destroyed) this.signaling.connect()
+  }
 
   private ensureLink(id: string): PeerLink {
     let link = this.links.get(id)

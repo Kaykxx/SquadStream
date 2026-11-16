@@ -6,6 +6,7 @@ import ControlBar from './ControlBar'
 import Chat from './Chat'
 import { CopyIcon } from './Icons'
 import { useAudio } from '../hooks/useAudio'
+import { MIC_ENABLED } from '../features'
 import { useRoom } from '../hooks/useRoom'
 import { colorFor, getIdentity } from '../webrtc'
 
@@ -154,7 +155,7 @@ export default function Room({ code, name, onLeave }: Props) {
       <UserBar users={users} onVoiceVolume={(id, v) => setVol(id, 'voice', v)} />
 
       <ControlBar
-        muted={muted} deafened={deafened} sharing={room.localSharing} quality={quality}
+        micEnabled={MIC_ENABLED} muted={muted} deafened={deafened} sharing={room.localSharing} quality={quality}
         chatOpen={chatOpen} unread={unreadCount}
         onMute={() => setMuted((m) => !m)} onDeafen={toggleDeafen}
         onShare={() => (room.localSharing ? room.stopScreen() : room.startScreen(quality))}

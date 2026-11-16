@@ -1,5 +1,6 @@
 import { createClient, type RealtimeChannel, type SupabaseClient } from '@supabase/supabase-js'
 import { MAX_PEERS } from './config'
+import { sanitizeChat, sanitizeMeta, sanitizeSignal } from './validate'
 
 export interface PresenceMeta {
   id: string
@@ -61,6 +62,9 @@ function getClient(): SupabaseClient {
 export class Signaling {
   private channel: RealtimeChannel | null = null
   private left = false
+  /** Participantes conhecidos pela presença (validada): nome/cor do chat vêm daqui, nunca da mensagem. */
+  private known = new Map<string, PresenceMeta>()
+  private chatTimes = new Map<string, number[]>()
   private code: string
   private meta: PresenceMeta
   private h: SignalingHandlers
@@ -83,10 +87,15 @@ export class Signaling {
     this.channel = ch
     ch.on('presence', { event: 'sync' }, () => this.handleSync())
     ch.on('broadcast', { event: 'signal' }, ({ payload }) => {
-      const msg = payload as SignalMessage
-      if (msg.to === this.meta.id) this.h.onSignal(msg)
+      const msg = sanitizeSignal(payload, this.meta.id)
+      if (msg) this.h.onSignal(msg)
     })
-    ch.on('broadcast', { event: 'chat' }, ({ payload }) => this.h.onChat(payload as ChatPayload))
+    ch.on('broadcast', { event: 'chat' }, ({ payload }) => {
+      const c = sanitizeChat(payload)
+      const from = c && this.known.get(c.from)
+      if (!c || !from || c.from === this.meta.id || !this.allowChat(c.from)) return
+      this.h.onChat({ id: c.id, from: c.from, name: from.name, color: from.color, text: c.text, ts: Date.now() })
+    })
     ch.subscribe(async (status) => {
       if (this.left) return
       if (status === 'SUBSCRIBED') {
@@ -104,9 +113,10 @@ export class Signaling {
     if (!this.channel || this.left) return
     const state = this.channel.presenceState<PresenceMeta>()
     const metas = Object.values(state)
-      .map((arr) => arr[arr.length - 1])
-      .filter(Boolean)
+      .map((arr) => sanitizeMeta(arr[arr.length - 1]))
+      .filter((m): m is PresenceMeta => m !== null)
       .sort((a, b) => a.joinedAt - b.joinedAt || a.id.localeCompare(b.id))
+    this.known = new Map(metas.map((m) => [m.id, m]))
     const myIdx = metas.findIndex((m) => m.id === this.meta.id)
     if (myIdx >= MAX_PEERS) {
       this.h.onFull()
@@ -114,6 +124,16 @@ export class Signaling {
       return
     }
     this.h.onPeers(metas)
+  }
+
+  /** No máximo 5 mensagens a cada 3 s por remetente. */
+  private allowChat(from: string): boolean {
+    const now = Date.now()
+    const recent = (this.chatTimes.get(from) ?? []).filter((t) => now - t < 3000)
+    if (recent.length >= 5) return false
+    recent.push(now)
+    this.chatTimes.set(from, recent)
+    return true
   }
 
   updateMeta(patch: Partial<PresenceMeta>): void {
