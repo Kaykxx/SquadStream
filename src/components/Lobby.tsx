@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { useInstall } from '../pwa'
 import { genRoomCode, parseRoomInput } from '../roomCode'
 
 export default function Lobby({ onJoin, presetCode = '' }: { onJoin: (code: string, name: string) => void; presetCode?: string }) {
   const [name, setName] = useState(() => { try { return localStorage.getItem('ss:name') ?? '' } catch { return '' } })
   const [input, setInput] = useState(presetCode)
   const [error, setError] = useState('')
+  const install = useInstall()
 
   const create = () => onJoin(genRoomCode(), name.trim() || 'Você')
   const join = (e: React.FormEvent) => {
@@ -46,6 +48,11 @@ export default function Lobby({ onJoin, presetCode = '' }: { onJoin: (code: stri
             {error && <p className="text-xs text-red-400">{error}</p>}
           </form>
         </div>
+        {install && (
+          <button onClick={() => void install()} className="mx-auto mt-4 block rounded-lg border border-line px-4 py-2 text-xs text-zinc-300 hover:bg-panel-2">
+            Instalar o app no computador
+          </button>
+        )}
         <p className="mt-4 text-center text-xs text-zinc-600">Até 4 pessoas por sala · conexão P2P</p>
       </div>
     </main>

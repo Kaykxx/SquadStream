@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Lobby from './components/Lobby'
 import Room from './components/Room'
 import { parseRoomInput } from './roomCode'
@@ -24,6 +24,12 @@ function loadInitial(): { session: Session | null; preset: string } {
 export default function App() {
   const [init] = useState(loadInitial)
   const [session, setSession] = useState<Session | null>(init.session)
+  const [updateReady, setUpdateReady] = useState(false)
+  useEffect(() => {
+    const on = () => setUpdateReady(true)
+    window.addEventListener('ss:update', on)
+    return () => window.removeEventListener('ss:update', on)
+  }, [])
 
   const join = (code: string, name: string) => {
     const s = { code, name }
@@ -38,6 +44,20 @@ export default function App() {
     setSession(null)
   }
 
-  if (!session) return <Lobby presetCode={init.preset} onJoin={join} />
-  return <Room code={session.code} name={session.name} onLeave={leave} />
+  const banner = updateReady && (
+    <div className="fixed bottom-4 left-4 z-50 flex items-center gap-3 rounded-xl border border-accent/50 bg-panel px-4 py-3 text-sm shadow-xl">
+      <span>Nova versão disponível.</span>
+      <button onClick={() => location.reload()} className="rounded-lg bg-accent px-3 py-1 text-xs font-semibold hover:brightness-110">
+        Atualizar{session ? ' (reconecta à sala)' : ''}
+      </button>
+      <button onClick={() => setUpdateReady(false)} className="text-xs text-zinc-400 hover:text-zinc-200">Depois</button>
+    </div>
+  )
+
+  return (
+    <>
+      {session ? <Room code={session.code} name={session.name} onLeave={leave} /> : <Lobby presetCode={init.preset} onJoin={join} />}
+      {banner}
+    </>
+  )
 }
