@@ -42,21 +42,41 @@ export async function startScreenShare(q: ScreenQuality, onEnded: () => void): P
   if (!navigator.mediaDevices?.getDisplayMedia) {
     throw new ScreenError('unsupported', 'Seu navegador não suporta compartilhamento de tela.')
   }
-  let stream: MediaStream
-  try {
-    const opts: DisplayMediaStreamOptions & Record<string, unknown> = {
+  // Do mais completo ao mais simples: alguns navegadores/sistemas rejeitam constraints avançadas.
+  const attempts: (DisplayMediaStreamOptions & Record<string, unknown>)[] = [
+    {
       video: videoConstraints(q),
       // Áudio de música/jogo: sem processamento de voz.
       audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
       systemAudio: 'include',
+    },
+    { video: videoConstraints(q), audio: true },
+    { video: true, audio: true },
+    { video: true, audio: false },
+  ]
+  let stream: MediaStream | null = null
+  let lastName = ''
+  for (const opts of attempts) {
+    try {
+      stream = await navigator.mediaDevices.getDisplayMedia(opts)
+      break
+    } catch (e) {
+      lastName = e instanceof DOMException || e instanceof TypeError ? e.name : 'Error'
+      console.warn('[screenShare] tentativa falhou:', lastName, e)
+      // Cancelou o seletor ou negou: não adianta insistir.
+      if (lastName === 'NotAllowedError' || lastName === 'AbortError' || lastName === 'SecurityError') {
+        throw new ScreenError('denied', 'Compartilhamento cancelado ou negado. Clique em “Compartilhar tela” e escolha o que transmitir.')
+      }
     }
-    stream = await navigator.mediaDevices.getDisplayMedia(opts)
-  } catch (e) {
-    const name = e instanceof DOMException ? e.name : ''
-    if (name === 'NotAllowedError' || name === 'AbortError' || name === 'SecurityError') {
-      throw new ScreenError('denied', 'Compartilhamento cancelado ou negado. Clique em “Compartilhar tela” e escolha o que transmitir.')
+  }
+  if (!stream) {
+    if (lastName === 'NotReadableError') {
+      throw new ScreenError('unknown', 'O sistema não liberou a captura da tela (NotReadableError). No Mac: Ajustes > Privacidade e Segurança > Gravação de Tela, ative o navegador e reabra-o. No Windows, feche outro programa que esteja capturando a tela e tente de novo.')
     }
-    throw new ScreenError('unknown', 'Não foi possível iniciar o compartilhamento de tela.')
+    if (lastName === 'NotFoundError') {
+      throw new ScreenError('unknown', 'Nenhuma tela, janela ou aba disponível para compartilhar.')
+    }
+    throw new ScreenError('unknown', `Não foi possível iniciar o compartilhamento de tela (${lastName || 'erro desconhecido'}).`)
   }
 
   const video = stream.getVideoTracks()[0]
