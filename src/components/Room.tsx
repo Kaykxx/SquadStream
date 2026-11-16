@@ -5,6 +5,7 @@ import UserBar from './UserBar'
 import ControlBar from './ControlBar'
 import Chat from './Chat'
 import { CopyIcon } from './Icons'
+import ScreenVideo from './ScreenVideo'
 import { useAudio } from '../hooks/useAudio'
 import { MIC_ENABLED } from '../features'
 import { useRoom } from '../hooks/useRoom'
@@ -130,6 +131,12 @@ export default function Room({ code, name, onLeave }: Props) {
           <button onClick={room.dismissMessages} className="shrink-0 text-xs text-red-300 underline">Fechar</button>
         </div>
       )}
+      {room.cameraError && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-2.5 text-sm text-red-200">
+          <span>{room.cameraError}</span>
+          <button onClick={room.dismissCameraError} className="shrink-0 text-xs text-red-300 underline">Fechar</button>
+        </div>
+      )}
       {room.notice && (
         <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-sm text-amber-200">
           <span>{room.notice}</span>
@@ -152,10 +159,22 @@ export default function Room({ code, name, onLeave }: Props) {
         {chatOpen && <Chat messages={messages} onSend={room.sendChat} onClose={() => toggleChat(false)} />}
       </div>
 
+      {/* Provisório (Passo 2): faixa simples só para testar o envio das câmeras. O layout final vem no Passo 3. */}
+      {Object.keys(room.cameras).length > 0 && (
+        <div className="flex gap-3 overflow-x-auto">
+          {Object.entries(room.cameras).map(([id, stream]) => (
+            <div key={id} className="relative h-28 w-48 shrink-0 overflow-hidden rounded-xl border border-line bg-black">
+              <ScreenVideo stream={stream} cover mirror={id === identity.peerId} />
+              <span className="absolute bottom-1 left-2 rounded bg-black/60 px-1.5 text-[11px]">{users.find((u) => u.id === id)?.name}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       <UserBar users={users} onVoiceVolume={(id, v) => setVol(id, 'voice', v)} />
 
       <ControlBar
-        micEnabled={MIC_ENABLED} muted={muted} deafened={deafened} sharing={room.localSharing} quality={quality}
+        micEnabled={MIC_ENABLED} muted={muted} deafened={deafened} sharing={room.localSharing} camera={room.localCamera} onCamera={() => (room.localCamera ? room.stopCamera() : room.startCamera())} quality={quality}
         chatOpen={chatOpen} unread={unreadCount}
         onMute={() => setMuted((m) => !m)} onDeafen={toggleDeafen}
         onShare={() => (room.localSharing ? room.stopScreen() : room.startScreen(quality))}

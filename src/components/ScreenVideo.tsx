@@ -4,10 +4,14 @@ interface Props {
   stream: MediaStream
   videoRef?: (el: HTMLVideoElement | null) => void
   onSize?: (w: number, h: number) => void
+  /** espelha horizontalmente (prévia da própria câmera) */
+  mirror?: boolean
+  /** preenche o quadro cortando as bordas (câmeras); padrão: mostra inteiro */
+  cover?: boolean
 }
 
 /** Vídeo da transmissão. Sempre mudo: o áudio da tela passa pelo AudioEngine (ganho 0–200%). */
-export default function ScreenVideo({ stream, videoRef, onSize }: Props) {
+export default function ScreenVideo({ stream, videoRef, onSize, mirror, cover }: Props) {
   const el = useRef<HTMLVideoElement | null>(null)
 
   useEffect(() => {
@@ -29,7 +33,8 @@ export default function ScreenVideo({ stream, videoRef, onSize }: Props) {
     <video
       ref={(n) => { el.current = n; videoRef?.(n) }}
       muted playsInline autoPlay
-      className="h-full w-full bg-black object-contain"
+      style={mirror ? { transform: 'scaleX(-1)' } : undefined}
+      className={`h-full w-full bg-black ${cover ? 'object-cover' : 'object-contain'}`}
     />
   )
 }

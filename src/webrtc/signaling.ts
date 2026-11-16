@@ -10,6 +10,9 @@ export interface PresenceMeta {
   muted: boolean
   deafened: boolean
   sharing: boolean
+  camera: boolean
+  /** id do MediaStream da câmera: distingue câmera de tela entre streams de vídeo */
+  cameraStreamId?: string
   /** id do MediaStream do microfone: qualquer outro stream deste peer é transmissão de tela */
   voiceStreamId?: string
 }

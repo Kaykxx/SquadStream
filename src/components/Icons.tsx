@@ -18,3 +18,5 @@ export const VolumeIcon = () => <I><path d="M11 5 6 9H3v6h3l5 4zM16 9a4 4 0 0 1 
 export const SendIcon = () => <I><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z" /></I>
 export const CopyIcon = () => <I><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></I>
 export const CloseIcon = () => <I><path d="M18 6 6 18M6 6l12 12" /></I>
+export const CameraIcon = () => <I><path d="M23 7l-7 5 7 5V7z" /><rect x="1" y="5" width="15" height="14" rx="2" /></I>
+export const CameraOffIcon = () => <I><path d="M3 3l18 18M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.7 0H14a2 2 0 0 1 2 2v3.3l1 1L23 7v10" /></I>

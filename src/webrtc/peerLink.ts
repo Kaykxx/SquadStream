@@ -1,4 +1,4 @@
-import { QUALITY_PROFILES, type ScreenQuality } from './config'
+import { CAMERA_PROFILE, QUALITY_PROFILES, type ScreenQuality } from './config'
 
 export type LinkState = 'connecting' | 'connected' | 'reconnecting' | 'failed'
 
@@ -28,6 +28,7 @@ export class PeerLink {
   private restarts = 0
   private disconnectTimer: ReturnType<typeof setTimeout> | undefined
   private screenSenders: RTCRtpSender[] = []
+  private cameraSender: RTCRtpSender | null = null
   private quality: ScreenQuality = '1080p60'
 
   constructor(o: Options) {
@@ -53,7 +54,7 @@ export class PeerLink {
     }
     this.pc.onconnectionstatechange = () => this.onConnState()
     // Parâmetros do encoder só existem depois da negociação: reaplica quando voltar a 'stable'.
-    this.pc.onsignalingstatechange = () => { if (this.pc.signalingState === 'stable') void this.applyScreenQuality(this.quality) }
+    this.pc.onsignalingstatechange = () => { if (this.pc.signalingState === 'stable') { void this.applyScreenQuality(this.quality); void this.applyCameraParams() } }
 
     if (o.localStream) o.localStream.getTracks().forEach((t) => this.pc.addTrack(t, o.localStream!))
     else this.pc.addTransceiver('audio', { direction: 'recvonly' }) // modo "só ouvir" (sem microfone)
@@ -98,6 +99,30 @@ export class PeerLink {
     if (this.closed) return
     for (const s of this.screenSenders) { try { this.pc.removeTrack(s) } catch { /* ignore */ } }
     this.screenSenders = []
+  }
+
+  /** Começa a enviar a câmera (dispara renegociação). */
+  addCamera(stream: MediaStream): void {
+    if (this.closed || this.cameraSender) return
+    const track = stream.getVideoTracks()[0]
+    if (!track) return
+    this.cameraSender = this.pc.addTrack(track, stream)
+  }
+
+  removeCamera(): void {
+    if (this.closed || !this.cameraSender) return
+    try { this.pc.removeTrack(this.cameraSender) } catch { /* ignore */ }
+    this.cameraSender = null
+  }
+
+  async applyCameraParams(): Promise<void> {
+    const sender = this.cameraSender
+    if (!sender || this.closed) return
+    const params = sender.getParameters()
+    if (!params.encodings || params.encodings.length === 0) return
+    params.encodings[0].maxBitrate = CAMERA_PROFILE.maxBitrate
+    params.encodings[0].maxFramerate = CAMERA_PROFILE.fps
+    try { await sender.setParameters(params) } catch (e) { console.warn('[peerLink] setParameters (câmera) falhou', e) }
   }
 
   /** Bitrate, fps máximo e preferência de degradação no RTCRtpSender de vídeo. */

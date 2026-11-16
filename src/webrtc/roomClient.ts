@@ -1,5 +1,6 @@
 import type { AudioEngine } from '../audio'
 import { MAX_PEERS, fetchIceServers, type ScreenQuality } from './config'
+import { CameraError, startCamera, type CameraHandle } from './camera'
 import { colorFor, type Identity } from './identity'
 import { PeerLink, type LinkState } from './peerLink'
 import { ScreenError, startScreenShare, type ScreenHandle } from './screenShare'
@@ -12,6 +13,7 @@ export interface RemotePeer {
   muted: boolean
   deafened: boolean
   sharing: boolean
+  camera: boolean
   connection: LinkState
 }
 
@@ -25,6 +27,11 @@ export interface RoomEvents {
   onScreen: (id: string, stream: MediaStream | null) => void
   /** transmissão local terminou (botão nativo do navegador ou parada) */
   onLocalShareEnded: () => void
+  /** stream da câmera de um participante (inclusive você), ou null quando desligou */
+  onCamera: (id: string, stream: MediaStream | null) => void
+  /** câmera local terminou sozinha (desconectada ou permissão revogada) */
+  onLocalCameraEnded: () => void
+  onCameraError: (message: string) => void
   onScreenError: (message: string) => void
   onNotice: (message: string) => void
 }
@@ -52,6 +59,10 @@ export class RoomClient {
   private screen: ScreenHandle | null = null
   private screenQuality: ScreenQuality = '1080p60'
   private screenStreams = new Map<string, MediaStream>()
+  private cameraStreams = new Map<string, MediaStream>()
+  private camera: CameraHandle | null = null
+  /** Streams de vídeo recebidos, por id do stream; a classificação câmera/tela sai da presença. */
+  private videos = new Map<string, { peerId: string; stream: MediaStream }>()
   private pendingTracks: { id: string; stream: MediaStream; track: MediaStreamTrack }[] = []
   private iceServers: RTCIceServer[] = []
 
@@ -65,6 +76,7 @@ export class RoomClient {
       muted: o.muted,
       deafened: o.deafened,
       sharing: false,
+      camera: false,
       voiceStreamId: o.micStream?.id,
     }
     this.signaling = new Signaling(o.code, me, {
@@ -102,6 +114,7 @@ export class RoomClient {
       },
     })
     if (this.screen) link.addScreen(this.screen.stream, this.screenQuality)
+    if (this.camera) link.addCamera(this.camera.stream)
     this.links.set(id, link)
     this.states.set(id, 'connecting')
     return link
@@ -117,17 +130,37 @@ export class RoomClient {
       return
     }
     if (track.kind === 'video') {
-      this.screenStreams.set(id, stream)
-      events.onScreen(id, stream)
+      this.videos.set(stream.id, { peerId: id, stream })
+      stream.addEventListener('removetrack', () => {
+        if (stream.getVideoTracks().length === 0) { this.videos.delete(stream.id); this.reclassify(id) }
+      })
+      this.reclassify(id)
     } else {
       engine.attachStream(id, 'screen', stream, { remote: true })
     }
   }
 
-  private clearRemoteScreen(id: string): void {
-    if (!this.screenStreams.delete(id)) return
-    this.o.engine.detachStream(id, 'screen')
-    this.o.events.onScreen(id, null)
+  /**
+   * Decide, pela presença, qual stream de vídeo é a câmera e qual é a tela de cada peer.
+   * Reexecutada a cada mudança de presença, então se corrige sozinha se o vídeo chegar antes dela.
+   */
+  private reclassify(id: string): void {
+    const meta = this.metas.find((m) => m.id === id)
+    if (!meta) return
+    const mine = [...this.videos.values()].filter((v) => v.peerId === id).map((v) => v.stream)
+    const cam = meta.camera ? mine.find((s) => s.id === meta.cameraStreamId) ?? null : null
+    const scr = meta.sharing ? [...mine].reverse().find((s) => s.id !== meta.cameraStreamId) ?? null : null
+    if (this.cameraStreams.get(id) !== (cam ?? undefined)) {
+      if (cam) this.cameraStreams.set(id, cam)
+      else this.cameraStreams.delete(id)
+      this.o.events.onCamera(id, cam)
+    }
+    if (this.screenStreams.get(id) !== (scr ?? undefined)) {
+      if (scr) this.screenStreams.set(id, scr)
+      else { this.screenStreams.delete(id); this.o.engine.detachStream(id, 'screen') }
+      this.o.events.onScreen(id, scr)
+    }
+    if (!meta.sharing) this.o.engine.detachStream(id, 'screen')
   }
 
   private handlePeers(all: PresenceMeta[]): void {
@@ -144,7 +177,7 @@ export class RoomClient {
     this.pendingTracks = []
     queued.forEach((q) => this.routeTrack(q.id, q.stream, q.track))
     // Quem parou de transmitir: remove tile e áudio da tela.
-    for (const m of all) if (m.id !== myId && !m.sharing) this.clearRemoteScreen(m.id)
+    for (const m of all) if (m.id !== myId) this.reclassify(m.id)
     this.emitPeers()
   }
 
@@ -153,7 +186,9 @@ export class RoomClient {
     this.links.delete(id)
     this.states.delete(id)
     this.o.engine.detachPeer(id)
-    this.clearRemoteScreen(id)
+    for (const [sid, v] of [...this.videos]) if (v.peerId === id) this.videos.delete(sid)
+    if (this.cameraStreams.delete(id)) this.o.events.onCamera(id, null)
+    if (this.screenStreams.delete(id)) this.o.events.onScreen(id, null)
     this.o.events.onSpeaking(id, false)
   }
 
@@ -163,7 +198,7 @@ export class RoomClient {
     const peers: RemotePeer[] = this.metas
       .filter((m) => m.id !== myId)
       .map((m) => ({
-        id: m.id, name: m.name, color: m.color, muted: m.muted, deafened: m.deafened, sharing: m.sharing,
+        id: m.id, name: m.name, color: m.color, muted: m.muted, deafened: m.deafened, sharing: m.sharing, camera: m.camera,
         connection: this.states.get(m.id) ?? 'connecting',
       }))
     this.o.events.onPeers(peers)
@@ -210,6 +245,36 @@ export class RoomClient {
     for (const link of this.links.values()) await link.applyScreenQuality(q)
   }
 
+  /** Liga a câmera (pede permissão). Independe do microfone e da tela. */
+  async startCamera(): Promise<void> {
+    if (this.camera || this.destroyed) return
+    try {
+      const handle = await startCamera(() => this.stopCamera(true))
+      if (this.destroyed) { handle.stop(); return }
+      this.camera = handle
+      // Presença primeiro: quem receber o vídeo já sabe qual stream é a câmera.
+      this.signaling.updateMeta({ camera: true, cameraStreamId: handle.stream.id })
+      for (const link of this.links.values()) {
+        link.addCamera(handle.stream)
+        void link.applyCameraParams()
+      }
+      this.o.events.onCamera(this.o.identity.peerId, handle.stream)
+    } catch (e) {
+      this.o.events.onCameraError(e instanceof CameraError ? e.message : 'Não foi possível ligar a câmera.')
+    }
+  }
+
+  stopCamera(fromBrowser = false): void {
+    const handle = this.camera
+    if (!handle) return
+    this.camera = null
+    handle.stop()
+    for (const link of this.links.values()) link.removeCamera()
+    this.o.events.onCamera(this.o.identity.peerId, null)
+    if (!this.destroyed) this.signaling.updateMeta({ camera: false, cameraStreamId: undefined })
+    if (fromBrowser) this.o.events.onLocalCameraEnded()
+  }
+
   setLocalState(patch: { muted?: boolean; deafened?: boolean }): void {
     this.signaling.updateMeta(patch)
   }
@@ -236,6 +301,8 @@ export class RoomClient {
     if (this.destroyed) return
     this.screen?.stop() // solta a captura de tela (sem avisar: já estamos saindo)
     this.screen = null
+    this.camera?.stop() // apaga a luz da câmera
+    this.camera = null
     this.destroyed = true
     this.closeAll()
     void this.signaling.leave()

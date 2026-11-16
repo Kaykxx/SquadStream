@@ -19,6 +19,8 @@ export function sanitizeMeta(raw: unknown): PresenceMeta | null {
     muted: raw.muted === true,
     deafened: raw.deafened === true,
     sharing: raw.sharing === true,
+    camera: raw.camera === true,
+    cameraStreamId: typeof raw.cameraStreamId === 'string' && raw.cameraStreamId.length <= 64 ? raw.cameraStreamId : undefined,
     voiceStreamId: typeof raw.voiceStreamId === 'string' && raw.voiceStreamId.length <= 64 ? raw.voiceStreamId : undefined,
   }
 }

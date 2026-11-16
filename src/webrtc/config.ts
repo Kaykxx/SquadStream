@@ -37,3 +37,6 @@ export const QUALITY_PROFILES: Record<ScreenQuality, QualityProfile> = {
   // Texto: menos fps, mais detalhe por quadro
   text: { width: 1920, height: 1080, fps: 15, maxBitrate: 4_000_000, contentHint: 'text', degradation: 'maintain-resolution' },
 }
+
+/** Câmera: leve de propósito, pois na malha P2P cada câmera é enviada uma vez para cada pessoa. */
+export const CAMERA_PROFILE = { maxBitrate: 700_000, fps: 30 }

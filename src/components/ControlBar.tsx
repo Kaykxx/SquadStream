@@ -1,13 +1,15 @@
 import type { ReactNode } from 'react'
 import type { Quality } from '../types'
 import { QUALITY_LABEL } from '../types'
-import { ChatIcon, HeadphonesIcon, HeadphonesOffIcon, MicIcon, MicOffIcon, PhoneOffIcon, ScreenIcon } from './Icons'
+import { CameraIcon, CameraOffIcon, ChatIcon, HeadphonesIcon, HeadphonesOffIcon, MicIcon, MicOffIcon, PhoneOffIcon, ScreenIcon } from './Icons'
 
 interface Props {
   micEnabled: boolean
   muted: boolean
   deafened: boolean
   sharing: boolean
+  camera: boolean
+  onCamera: () => void
   quality: Quality
   chatOpen: boolean
   unread: number
@@ -34,6 +36,7 @@ export default function ControlBar(p: Props) {
     <div className="flex flex-wrap items-center justify-center gap-2.5">
       {p.micEnabled && <Btn label={p.muted ? 'Desmutar' : 'Mutar'} on={p.muted} onClick={p.onMute}>{p.muted ? <MicOffIcon /> : <MicIcon />}</Btn>}
       <Btn label={p.deafened ? 'Ouvir' : 'Ensurdecer'} on={p.deafened} onClick={p.onDeafen}>{p.deafened ? <HeadphonesOffIcon /> : <HeadphonesIcon />}</Btn>
+      <Btn label={p.camera ? 'Desligar câmera' : 'Câmera'} on={p.camera} onClick={p.onCamera}>{p.camera ? <CameraIcon /> : <CameraOffIcon />}</Btn>
       <Btn label={p.sharing ? 'Parar transmissão' : 'Compartilhar tela'} on={p.sharing}  onClick={p.onShare}><ScreenIcon /></Btn>
 
       <select

@@ -23,6 +23,9 @@ export function useRoom(o: Options) {
   const [speaking, setSpeaking] = useState<Record<string, boolean>>({})
   const [messages, setMessages] = useState<ChatPayload[]>([])
   const [screens, setScreens] = useState<Record<string, MediaStream>>({})
+  const [cameras, setCameras] = useState<Record<string, MediaStream>>({})
+  const [localCamera, setLocalCamera] = useState(false)
+  const [cameraError, setCameraError] = useState<string | null>(null)
   const [localSharing, setLocalSharing] = useState(false)
   const [screenError, setScreenError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -54,6 +57,15 @@ export function useRoom(o: Options) {
             })
             if (id === cur.identity.peerId) setLocalSharing(Boolean(stream))
           },
+          onCamera: (id, stream) => {
+            setCameras((cs) => {
+              if (!stream) { if (!(id in cs)) return cs; const { [id]: _drop, ...rest } = cs; return rest }
+              return cs[id] === stream ? cs : { ...cs, [id]: stream }
+            })
+            if (id === cur.identity.peerId) setLocalCamera(Boolean(stream))
+          },
+          onLocalCameraEnded: () => setLocalCamera(false),
+          onCameraError: (m) => { setCameraError(m); setLocalCamera(false) },
           onLocalShareEnded: () => setLocalSharing(false),
           onScreenError: (m) => { setScreenError(m); setLocalSharing(false) },
           onNotice: setNotice,
@@ -73,6 +85,8 @@ export function useRoom(o: Options) {
       setPeers([])
       setSpeaking({})
       setScreens({})
+      setCameras({})
+      setLocalCamera(false)
       setLocalSharing(false)
     }
   }, [code, name, identity, engine, ready, micStream])
@@ -91,8 +105,10 @@ export function useRoom(o: Options) {
     setNotice(null)
     void clientRef.current?.startScreen(q)
   }
+  const startCamera = () => { setCameraError(null); void clientRef.current?.startCamera() }
+  const stopCamera = () => clientRef.current?.stopCamera()
   const stopScreen = () => clientRef.current?.stopScreen()
   const setScreenQuality = (q: ScreenQuality) => { void clientRef.current?.setScreenQuality(q) }
 
-  return { screens, localSharing, screenError, notice, dismissMessages: () => { setScreenError(null); setNotice(null) }, startScreen, stopScreen, setScreenQuality, status, statusDetail, full, peers, speaking, messages, sendChat }
+  return { cameras, localCamera, cameraError, startCamera, stopCamera, dismissCameraError: () => setCameraError(null), screens, localSharing, screenError, notice, dismissMessages: () => { setScreenError(null); setNotice(null) }, startScreen, stopScreen, setScreenQuality, status, statusDetail, full, peers, speaking, messages, sendChat }
 }
