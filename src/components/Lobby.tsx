@@ -2,6 +2,9 @@ import { useState } from 'react'
 import { useInstall } from '../pwa'
 import { genRoomCode, parseRoomInput } from '../roomCode'
 
+const DOWNLOAD_URL = 'https://github.com/Kaykxx/SquadStream/releases/latest/download/SquadStream.exe'
+const IS_DESKTOP_APP = /Electron\//.test(navigator.userAgent)
+
 export default function Lobby({ onJoin, presetCode = '' }: { onJoin: (code: string, name: string) => void; presetCode?: string }) {
   const [name, setName] = useState(() => { try { return localStorage.getItem('ss:name') ?? '' } catch { return '' } })
   const [input, setInput] = useState(presetCode)
@@ -48,6 +51,11 @@ export default function Lobby({ onJoin, presetCode = '' }: { onJoin: (code: stri
             {error && <p className="text-xs text-red-400">{error}</p>}
           </form>
         </div>
+        {!IS_DESKTOP_APP && (
+          <a href={DOWNLOAD_URL} className="mx-auto mt-4 block w-fit rounded-lg bg-panel-2 px-4 py-2 text-xs font-semibold text-zinc-100 hover:bg-line">
+            ⬇ Baixar para Windows (.exe) · som da tela sempre ligado
+          </a>
+        )}
         {install && (
           <button onClick={() => void install()} className="mx-auto mt-4 block rounded-lg border border-line px-4 py-2 text-xs text-zinc-300 hover:bg-panel-2">
             Instalar o app no computador

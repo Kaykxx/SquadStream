@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<style>
+  body{margin:0;background:#12151c;color:#e4e4e7;font-family:system-ui,sans-serif;padding:16px}
+  h1{font-size:16px;margin:0 0 4px} p{margin:0 0 14px;font-size:12px;color:#8b92a5}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-height:380px;overflow:auto}
+  button{background:#1a1e28;border:2px solid #262b38;border-radius:10px;padding:8px;color:inherit;cursor:pointer;text-align:left}
+  button:hover{border-color:#7c5cff}
+  img.t{width:100%;aspect-ratio:16/9;object-fit:contain;background:#000;border-radius:6px;display:block}
+  .n{display:flex;gap:6px;align-items:center;margin-top:6px;font-size:12px}
+  .n img{width:16px;height:16px} .n span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .c{margin-top:14px;text-align:right} .c button{padding:8px 16px;border-radius:999px;border-width:1px}
+</style></head><body>
+<h1>Escolha o que transmitir</h1><p>O som do computador vai junto automaticamente.</p>
+<div class="grid" id="g"></div>
+<div class="c"><button id="x">Cancelar</button></div>
+<script>
+  const g=document.getElementById('g')
+  window.picker.onSources(list=>{
+    for(const s of list){
+      const b=document.createElement('button')
+      const t=document.createElement('img');t.className='t';t.src=s.thumb
+      const n=document.createElement('div');n.className='n'
+      if(s.icon){const i=document.createElement('img');i.src=s.icon;n.appendChild(i)}
+      const sp=document.createElement('span');sp.textContent=s.name;n.appendChild(sp)
+      b.append(t,n);b.onclick=()=>window.picker.choose(s.id);g.appendChild(b)
+    }
+  })
+  document.getElementById('x').onclick=()=>window.picker.choose(null)
+</script></body></html>

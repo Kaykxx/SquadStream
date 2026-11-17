@@ -1,0 +1,24 @@
+{
+  "name": "squadstream-desktop",
+  "version": "1.0.0",
+  "description": "SquadStream para Windows (abre o site hospedado, com áudio do sistema na transmissão)",
+  "main": "main.cjs",
+  "private": true,
+  "author": "SquadStream",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win portable"
+  },
+  "build": {
+    "appId": "app.squadstream.desktop",
+    "productName": "SquadStream",
+    "directories": { "output": "release" },
+    "files": ["main.cjs", "picker.html", "preload.cjs", "package.json"],
+    "win": { "icon": "icon.png", "target": "portable" },
+    "portable": { "artifactName": "SquadStream.exe" }
+  },
+  "devDependencies": {
+    "electron": "^39.0.0",
+    "electron-builder": "^26.0.0"
+  }
+}

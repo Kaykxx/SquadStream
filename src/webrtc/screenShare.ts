@@ -47,7 +47,8 @@ export async function startScreenShare(q: ScreenQuality, onEnded: () => void): P
     {
       video: videoConstraints(q),
       // Áudio de música/jogo: sem processamento de voz.
-      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+      // restrictOwnAudio: pede ao navegador para não capturar o som do próprio app (ignorado se não suportado).
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, restrictOwnAudio: true } as MediaTrackConstraints,
       systemAudio: 'include',
     },
     { video: videoConstraints(q), audio: true },
