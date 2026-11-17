@@ -42,7 +42,7 @@ export default function Room({ code, name, onLeave }: Props) {
   }, [engine, volumes])
 
   const setVol = (id: string, key: 'voice' | 'screen', v: number) =>
-    setVolumes((vs) => ({ ...vs, [id]: { ...(vs[id] ?? { voice: 100, screen: 100 }), [key]: v } }))
+    setVolumes((vs) => ({ ...vs, [id]: { ...(vs[id] ?? { voice: 100, screen: 0 }), [key]: v } }))
 
   const users: Participant[] = useMemo(() => {
     const me: Participant = {
@@ -52,7 +52,7 @@ export default function Room({ code, name, onLeave }: Props) {
     const others = room.peers.map<Participant>((p) => ({
       id: p.id, name: p.name, color: p.color,
       speaking: Boolean(room.speaking[p.id]), muted: p.muted, deafened: p.deafened, sharing: p.sharing,
-      voiceVolume: volumes[p.id]?.voice ?? 100, screenVolume: volumes[p.id]?.screen ?? 100,
+      voiceVolume: volumes[p.id]?.voice ?? 100, screenVolume: volumes[p.id]?.screen ?? 0,
       connection: p.connection,
     }))
     return [me, ...others]

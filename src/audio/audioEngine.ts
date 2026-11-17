@@ -22,6 +22,9 @@ const MAX_GAIN = 2 // 200%
  * Gerenciador de áudio (Web Audio API). Sem nada de React/UI.
  * Cada fonte remota: MediaStreamSource -> GainNode (0..2) -> master (Ensurdecer) -> destino.
  */
+/** Volume inicial (%) por tipo: a voz abre normal, o som das transmissões abre mutado. */
+const DEFAULT_GAIN: Record<StreamKind, number> = { voice: 100, screen: 0 }
+
 export class AudioEngine {
   private ctx: AudioContext
   private master: GainNode
@@ -77,7 +80,7 @@ export class AudioEngine {
     const source = this.ctx.createMediaStreamSource(stream)
     const gain = this.ctx.createGain()
     source.connect(gain).connect(this.master)
-    gain.gain.value = Math.min(MAX_GAIN, Math.max(0, (this.gains.get(this.key(id, kind)) ?? 100) / 100))
+    gain.gain.value = Math.min(MAX_GAIN, Math.max(0, (this.gains.get(this.key(id, kind)) ?? DEFAULT_GAIN[kind]) / 100))
     const entry: Entry = { source, gain, sink }
     // VAD fica antes do ganho: o slider em 0% não "apaga" a borda verde de quem fala.
     if (kind === 'voice' && opts.onSpeaking) entry.vad = createVad(this.ctx, source, opts.onSpeaking)
