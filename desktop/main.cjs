@@ -13,8 +13,20 @@ let win = null
 function createWindow() {
   win = new BrowserWindow({
     width: 1280, height: 800, minWidth: 900, minHeight: 600,
-    backgroundColor: '#0b0d12', autoHideMenuBar: true, icon: path.join(__dirname, 'icon.png'),
+    backgroundColor: '#0b0d12', autoHideMenuBar: true,
+    // Barra de título na cor do app: só os botões (minimizar/fechar) ficam por cima.
+    titleBarStyle: 'hidden', titleBarOverlay: { color: '#0b0d12', symbolColor: '#e4e4e7', height: 32 }, icon: path.join(__dirname, 'icon.png'),
     webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false },
+  })
+  win.maximize()
+  // F11 alterna tela cheia de verdade.
+  win.webContents.on('before-input-event', (e, input) => {
+    if (input.type === 'keyDown' && input.key === 'F11') { e.preventDefault(); win.setFullScreen(!win.isFullScreen()) }
+  })
+  // Faixa de 32px no topo (arrastável) para a página não ficar embaixo dos botões da janela.
+  win.webContents.on('did-finish-load', () => {
+    win.webContents.insertCSS('body{box-sizing:border-box;padding-top:32px}#ss-drag{position:fixed;top:0;left:0;right:0;height:32px;z-index:2147483647;-webkit-app-region:drag;background:#0b0d12;display:flex;align-items:center;padding-left:12px;font:600 12px system-ui;color:#8b92a5}')
+    win.webContents.executeJavaScript("if(!document.getElementById('ss-drag')){const d=document.createElement('div');d.id='ss-drag';d.textContent='SquadStream';document.body.appendChild(d)}")
   })
   win.loadURL(SITE)
   // Links externos abrem no navegador; o app só navega no próprio site.
