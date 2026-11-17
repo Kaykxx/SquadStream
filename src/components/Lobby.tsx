@@ -53,7 +53,7 @@ export default function Lobby({ onJoin, presetCode = '' }: { onJoin: (code: stri
         </div>
         {!IS_DESKTOP_APP && (
           <a href={DOWNLOAD_URL} className="mx-auto mt-4 block w-fit rounded-lg bg-panel-2 px-4 py-2 text-xs font-semibold text-zinc-100 hover:bg-line">
-            ⬇ Baixar para Windows (.exe) · som da tela sempre ligado
+            ⬇ Baixar para Windows
           </a>
         )}
         {install && (
