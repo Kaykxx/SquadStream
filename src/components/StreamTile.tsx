@@ -3,7 +3,7 @@ import type { Participant, Quality } from '../types'
 import { QUALITY_LABEL } from '../types'
 import ScreenVideo from './ScreenVideo'
 import VolumeSlider from './VolumeSlider'
-import { FocusIcon, FullscreenIcon, GridIcon, PipIcon, VolumeIcon } from './Icons'
+import { FocusIcon, FullscreenIcon, GridIcon, PipIcon, SlidersIcon, VolumeIcon, VolumeOffIcon } from './Icons'
 
 interface Props {
   p: Participant
@@ -34,6 +34,14 @@ export default function StreamTile({ p, stream, quality, focused, compact, onFoc
   const video = useRef<HTMLVideoElement | null>(null)
   const [volOpen, setVolOpen] = useState(false)
   const [size, setSize] = useState<{ w: number; h: number } | null>(null)
+
+  // Silenciar de uma vez: vai a 0% e, ao reativar, volta ao volume de antes.
+  const lastVol = useRef(100)
+  const screenMuted = p.screenVolume === 0
+  const toggleMute = () => {
+    if (screenMuted) onScreenVolume(lastVol.current || 100)
+    else { lastVol.current = p.screenVolume; onScreenVolume(0) }
+  }
 
   const onSize = useCallback((w: number, h: number) => setSize({ w, h }), [])
 
@@ -74,14 +82,19 @@ export default function StreamTile({ p, stream, quality, focused, compact, onFoc
 
       <div className="absolute inset-x-0 bottom-0 flex items-end justify-end gap-1.5 bg-gradient-to-t from-black/70 to-transparent p-2.5 opacity-0 transition group-hover:opacity-100">
         {!p.isMe && (
+          <>
+            <button className={`${btn} ${screenMuted ? 'text-red-400' : ''}`} title={screenMuted ? 'Reativar som da transmissão' : 'Silenciar transmissão'} onClick={toggleMute}>
+              {screenMuted ? <VolumeOffIcon /> : <VolumeIcon />}
+            </button>
           <div className="relative">
             {volOpen && (
               <div className="absolute bottom-10 right-0 w-52 rounded-xl border border-line bg-panel p-3 shadow-xl">
                 <VolumeSlider label="Volume da tela" value={p.screenVolume} onChange={onScreenVolume} />
               </div>
             )}
-            <button className={btn} title="Volume da transmissão" onClick={() => setVolOpen((o) => !o)}><VolumeIcon /></button>
+            <button className={btn} title="Volume da transmissão" onClick={() => setVolOpen((o) => !o)}><SlidersIcon /></button>
           </div>
+          </>
         )}
         {!compact && <button className={btn} title="Picture-in-Picture" onClick={pip}><PipIcon /></button>}
         <button className={btn} title={focused ? 'Voltar à grade' : 'Modo foco'} onClick={onFocus}>{focused ? <GridIcon /> : <FocusIcon />}</button>

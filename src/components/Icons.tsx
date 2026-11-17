@@ -15,6 +15,8 @@ export const PipIcon = () => <I><rect x="2" y="4" width="20" height="16" rx="2" 
 export const FocusIcon = () => <I><circle cx="12" cy="12" r="3" /><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3" /></I>
 export const GridIcon = () => <I><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></I>
 export const VolumeIcon = () => <I><path d="M11 5 6 9H3v6h3l5 4zM16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12" /></I>
+export const VolumeOffIcon = () => <I><path d="M11 5 6 9H3v6h3l5 4zM22 9l-6 6M16 9l6 6" /></I>
+export const SlidersIcon = () => <I><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6" /></I>
 export const SendIcon = () => <I><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z" /></I>
 export const CopyIcon = () => <I><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></I>
 export const CloseIcon = () => <I><path d="M18 6 6 18M6 6l12 12" /></I>
