@@ -6,6 +6,9 @@ const path = require('node:path')
 const SITE = process.env.SQUAD_URL || 'https://squad-stream.vercel.app'
 const ORIGIN = new URL(SITE).origin
 
+// Sem bloqueio de autoplay: o som da sala toca sem precisar clicar na página antes.
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required')
+
 if (!app.requestSingleInstanceLock()) app.quit()
 
 let win = null
